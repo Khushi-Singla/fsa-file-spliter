@@ -23,30 +23,28 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
+import static java.nio.file.Files.newInputStream;
+
 public class FileSpliter {
     private DocumentProcessor csvProcessor = new CsvDocumentProcessor();
 
     private DocumentProcessor excelProcessor = new ExcelDocumentProcessor();
     private static final int BATCH_LIMIT_IN_MB = 1;
     private static final int MAX_BATCH_LIMIT_IN_BYTES = BATCH_LIMIT_IN_MB * 1024 * 1024;
-    public int process(String fileName) throws IOException {
-        ClassLoader classLoader = this.getClass().getClassLoader();
+    public int process(String filePath) throws IOException {
         BatchedRecordReader reader;
         int filePartNumber = 1;
-        try (InputStream inputStream = classLoader.getResourceAsStream(fileName)) {
-            if (inputStream == null) {
-                throw new IllegalArgumentException("File not found! " + fileName);
-            }
-            System.out.println("Original File :: " +
-                    getFileSize("src/main/resources/" + fileName.replaceAll("./","")) + " MB");
-            if (isCSV(fileName)) {
+        Path path = Paths.get(filePath);
+        try (InputStream inputStream = newInputStream(path)) {
+            System.out.println("Original File :: " + getFileSize(filePath) + " MB");
+            if (isCSV(filePath)) {
                 reader = new BatchedRecordReader(this.csvProcessor.getReader(inputStream));
             } else {
                 reader = new BatchedRecordReader(this.excelProcessor.getReader(inputStream, "DD/MM/YYYY"));
             }
             while (reader.hasMore()) {
                 List<Row> batch = reader.read();
-                write(batch, filePartNumber);
+                write(batch, filePartNumber, path);
                 filePartNumber++;
 
             }
@@ -64,24 +62,24 @@ public class FileSpliter {
         return Objects.equals(Files.probeContentType(filePath), "text/csv");
     }
 
-    private void write(List<Row> batch, int filePartNumber) throws IOException {
+    private void write(List<Row> batch, int filePartNumber, Path path) throws IOException {
         String fileName = "batch_" + filePartNumber + ".csv";
-        File tmpFile = new File(getTmpDir(), fileName);
+        File tmpFile = new File(getTmpDir(path), fileName);
         try (CSVWriter csvWriter = new CSVWriter(new FileWriter(tmpFile, StandardCharsets.UTF_8))) {
             for (Row row : batch) {
                 // Writing data to CSV file
                 csvWriter.writeNext(row.getValues().toArray(new String[]{}));
             }
-            System.out.println("Batch File :: " + fileName + " :: " + getFileSize("tmp/" + fileName) + " MB");
+            System.out.println("Batch File :: " + fileName + " :: " + getFileSize(tmpFile.getAbsolutePath()) + " MB");
         } catch (IOException exception) {
             exception.printStackTrace();
         }
     }
 
-    private static File getTmpDir() throws IOException {
-        File file = new File("./tmp");
+    private static File getTmpDir(Path path) throws IOException {
+        File file = new File(String.valueOf(path.getParent()) + "/tmp");
         if (!file.exists()) {
-            Files.createDirectories(Path.of("./tmp"));
+            Files.createDirectories(Path.of(path.getParent() + "/tmp"));
         }
         return file;
     }
