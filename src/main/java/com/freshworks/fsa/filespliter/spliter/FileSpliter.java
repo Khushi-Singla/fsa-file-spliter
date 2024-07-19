@@ -37,7 +37,8 @@ public class FileSpliter {
             if (inputStream == null) {
                 throw new IllegalArgumentException("File not found! " + fileName);
             }
-            System.out.println("Original File :: " + getFileSize("src/main/resources/" + fileName.replaceAll("./","")));
+            System.out.println("Original File :: " +
+                    getFileSize("src/main/resources/" + fileName.replaceAll("./","")) + " MB");
             if (isCSV(fileName)) {
                 reader = new BatchedRecordReader(this.csvProcessor.getReader(inputStream));
             } else {
@@ -71,7 +72,7 @@ public class FileSpliter {
                 // Writing data to CSV file
                 csvWriter.writeNext(row.getValues().toArray(new String[]{}));
             }
-            System.out.println("Batch File :: " + fileName + " :: " + getFileSize("tmp/" + fileName));
+            System.out.println("Batch File :: " + fileName + " :: " + getFileSize("tmp/" + fileName) + " MB");
         } catch (IOException exception) {
             exception.printStackTrace();
         }
