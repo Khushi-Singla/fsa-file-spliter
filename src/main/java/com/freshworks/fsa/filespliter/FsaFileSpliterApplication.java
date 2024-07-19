@@ -1,13 +1,13 @@
 package com.freshworks.fsa.filespliter;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import com.freshworks.fsa.filespliter.spliter.FileSpliter;
 
-@SpringBootApplication
+import java.io.IOException;
+
 public class FsaFileSpliterApplication {
 
-    public static void main(String[] args) {
-        SpringApplication.run(FsaFileSpliterApplication.class, args);
+    public static void main(String[] args) throws IOException {
+        FileSpliter fileSpliter = new FileSpliter();
+        fileSpliter.process(args[0]);
     }
-
 }

@@ -1,16 +1,13 @@
 package com.freshworks.fsa.filespliter.spliter;
 
 import com.freshworks.fsa.filespliter.exceptions.DocumentReaderException;
-import com.freshworks.fsa.filespliter.model.DocumentType;
 import com.freshworks.fsa.filespliter.model.Row;
+import com.freshworks.fsa.filespliter.processor.CsvDocumentProcessor;
 import com.freshworks.fsa.filespliter.processor.DocumentProcessor;
-import com.freshworks.fsa.filespliter.processor.DocumentTypeSelector;
+import com.freshworks.fsa.filespliter.processor.ExcelDocumentProcessor;
 import com.freshworks.fsa.filespliter.reader.DocumentReader;
 import com.opencsv.CSVWriter;
-import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -26,21 +23,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
-@NoArgsConstructor
-@Service
-@Slf4j
 public class FileSpliter {
-    @Autowired
-    @DocumentTypeSelector(type = DocumentType.CSV)
-    private DocumentProcessor csvProcessor;
+    private DocumentProcessor csvProcessor = new CsvDocumentProcessor();
 
-    @Autowired
-    @DocumentTypeSelector(type = DocumentType.EXCEL)
-    private DocumentProcessor excelProcessor;
+    private DocumentProcessor excelProcessor = new ExcelDocumentProcessor();
     private static final int BATCH_LIMIT_IN_MB = 1;
     private static final int MAX_BATCH_LIMIT_IN_BYTES = BATCH_LIMIT_IN_MB * 1024 * 1024;
-    public int process() throws IOException {
-        String fileName = "./file.csv";
+    public int process(String fileName) throws IOException {
         ClassLoader classLoader = this.getClass().getClassLoader();
         BatchedRecordReader reader;
         int filePartNumber = 1;
@@ -48,6 +37,7 @@ public class FileSpliter {
             if (inputStream == null) {
                 throw new IllegalArgumentException("File not found! " + fileName);
             }
+            System.out.println("Original File :: " + getFileSize("src/main/resources/" + fileName.replaceAll("./","")));
             if (isCSV(fileName)) {
                 reader = new BatchedRecordReader(this.csvProcessor.getReader(inputStream));
             } else {
@@ -56,11 +46,16 @@ public class FileSpliter {
             while (reader.hasMore()) {
                 List<Row> batch = reader.read();
                 write(batch, filePartNumber);
-                log.info("Batch {} created.", filePartNumber);
                 filePartNumber++;
+
             }
         }
         return 0;
+    }
+
+    private Double getFileSize(String filePath) throws IOException {
+        Path path = Paths.get(filePath);
+        return (Files.size(path) / (double)(1024 * 1024));
     }
 
     private static boolean isCSV(String fileName) throws IOException {
@@ -76,8 +71,9 @@ public class FileSpliter {
                 // Writing data to CSV file
                 csvWriter.writeNext(row.getValues().toArray(new String[]{}));
             }
+            System.out.println("Batch File :: " + fileName + " :: " + getFileSize("tmp/" + fileName));
         } catch (IOException exception) {
-            log.error("GenericException: Exception occurred while writing file.", exception);
+            exception.printStackTrace();
         }
     }
 
@@ -117,7 +113,7 @@ public class FileSpliter {
                     bytesRead += rowBytes.length;
                 }
             } catch (DocumentReaderException e) {
-                log.error("GenericException: Exception occurred while reading data.", e);
+                e.printStackTrace();
             }
             return records.size() != 1 ? records : Collections.emptyList();
         }

@@ -2,14 +2,10 @@ package com.freshworks.fsa.filespliter.processor;
 
 import com.freshworks.fsa.filespliter.exceptions.CSVDocumentReaderException;
 import com.freshworks.fsa.filespliter.exceptions.DocumentReaderException;
-import com.freshworks.fsa.filespliter.model.DocumentType;
 import com.freshworks.fsa.filespliter.reader.CsvDocumentReader;
 import com.freshworks.fsa.filespliter.reader.DocumentReader;
-import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.input.BOMInputStream;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.stereotype.Component;
 
 import java.io.BufferedInputStream;
 import java.io.InputStream;
@@ -23,10 +19,6 @@ import static org.apache.commons.io.ByteOrderMark.UTF_32BE;
 import static org.apache.commons.io.ByteOrderMark.UTF_32LE;
 import static org.apache.commons.io.ByteOrderMark.UTF_8;
 
-@Component
-@AllArgsConstructor
-@DocumentTypeSelector(type = DocumentType.CSV)
-@Slf4j
 public class CsvDocumentProcessor
         implements DocumentProcessor {
 
@@ -46,10 +38,8 @@ public class CsvDocumentProcessor
             if (StringUtils.isNotBlank(charsetName)) {
                 charset =  Charset.forName(charsetName);
             }
-            log.trace("Chosen charset for the incoming stream {}", charset);
             return new CsvDocumentReader(bufferedStream, charset);
         } catch (Exception exception) {
-            log.error("GenericException: Exception occurred while initializing the CSV document reader.", exception);
             throw new CSVDocumentReaderException("Exception occurred while parsing the CSV document", exception);
         }
     }

@@ -16,7 +16,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-@Slf4j
 public class CsvDocumentReader
         implements DocumentReader {
     private final CSVParser parser;
@@ -29,7 +28,6 @@ public class CsvDocumentReader
 
     @Override
     public Iterator<Row> iterator() {
-        log.trace("Creating a new Iterator for the document.");
         return new RowIterator();
     }
 
@@ -73,15 +71,11 @@ public class CsvDocumentReader
                         return false;
                     }
                 } while (isEmptyRow);
-                log.trace("Processed the row and extracted the data {}", values);
                 row.setValues(values);
                 nextRow = row;
                 return true;
             } catch (Exception exception) {
                 rowsWithError++;
-                log.error("GenericException: Exception occurred while iterating over the rows. Rows with error {}",
-                        rowsWithError,
-                        exception);
                 throw new CSVDocumentReaderException("Exception occurred while iterating over the rows.", exception);
             }
         }

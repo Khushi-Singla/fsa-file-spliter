@@ -4,7 +4,6 @@ import com.freshworks.fsa.filespliter.exceptions.ExcelDocumentReaderException;
 import com.freshworks.fsa.filespliter.model.Row;
 import com.github.pjfanning.xlsx.StreamingReader;
 import io.vavr.control.Try;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
@@ -19,7 +18,6 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-@Slf4j
 public class ExcelDocumentReader
         implements DocumentReader {
     private final Workbook workbook;
@@ -33,7 +31,6 @@ public class ExcelDocumentReader
 
     @Override
     public Iterator<Row> iterator() {
-        log.trace("Creating a new Iterator for the workbook sheet {}", workbook.getSheetName(0));
         return new RowIterator();
     }
 
@@ -50,7 +47,6 @@ public class ExcelDocumentReader
             Sheet sheet = workbook.getSheetAt(0);
             if (sheet == null) {
                 String message = "Can't find the first sheet in the document. Can't iterate";
-                log.error(message);
                 throw new ExcelDocumentReaderException(message);
             }
             it = sheet.iterator();
@@ -85,7 +81,6 @@ public class ExcelDocumentReader
                 } while (isEmptyRow);
                 if (!headerProcessed) {
                     columnEnd = sourceRow.getLastCellNum();
-                    log.trace("Computed document's column start and end indices {} - {}", columnStarts, columnEnd);
                     headerProcessed = true;
                 }
                 for (int cellNum = columnStarts; cellNum < columnEnd; cellNum++) {
@@ -95,7 +90,6 @@ public class ExcelDocumentReader
                 return true;
             } catch (Exception exception) {
                 String message = "Error occurred while iterating over rows of the document.";
-                log.error(message, exception);
                 throw new ExcelDocumentReaderException(message, exception);
             }
         }
@@ -105,8 +99,6 @@ public class ExcelDocumentReader
                 Cell cell = sourceRow.getCell(cellNum,
                         org.apache.poi.ss.usermodel.Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
                 if (cell == null) {
-                    log.trace("Found no value in the cell. Row {} column {}. Setting null",
-                            sourceRow.getRowNum(), cellNum);
                     row.addValue(null);
                 } else {
                     processCell(cell, row);
@@ -114,9 +106,6 @@ public class ExcelDocumentReader
             } catch (Exception exception) {
                 row.addValue(null);
                 rowsWithError++;
-                log.error("Exception occurred while processing current row {} and column {}. "
-                                + "Rows with error {}.  Setting null",
-                        sourceRow.getRowNum(), cellNum, rowsWithError, exception);
             }
         }
 
