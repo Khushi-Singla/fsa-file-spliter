@@ -36,9 +36,9 @@ public class FileSpliter {
     public int process(String filePath) throws IOException {
         BatchedRecordReader reader;
         int filePartNumber = 1;
-        Path path = Paths.get(filePath);
+        Path parentPath = Paths.get(filePath);
         Map<File, Integer> summary = new LinkedHashMap<>();
-        try (InputStream inputStream = newInputStream(path)) {
+        try (InputStream inputStream = newInputStream(parentPath)) {
             summary.put(new File(filePath), 0);
             if (isCSV(filePath)) {
                 reader = new BatchedRecordReader(this.csvProcessor.getReader(inputStream));
@@ -47,10 +47,10 @@ public class FileSpliter {
             }
             while (reader.hasMore()) {
                 List<Row> batch = reader.read();
-                write(batch, filePartNumber, path, summary);
+                write(batch, filePartNumber, parentPath, summary);
                 filePartNumber++;
             }
-            printSummary(summary, path);
+            printSummary(summary, parentPath);
         }
         return 0;
     }
@@ -60,14 +60,14 @@ public class FileSpliter {
         return (Files.size(path) / (double)(1024 * 1024));
     }
 
-    private static boolean isCSV(String fileName) throws IOException {
-        Path filePath = Paths.get(fileName);
-        return Objects.equals(Files.probeContentType(filePath), "text/csv");
+    private static boolean isCSV(String filePath) throws IOException {
+        Path path = Paths.get(filePath);
+        return Objects.equals(Files.probeContentType(path), "text/csv");
     }
 
-    private void write(List<Row> batch, int filePartNumber, Path path, Map<File, Integer> summary) throws IOException {
+    private void write(List<Row> batch, int filePartNumber, Path parentPath, Map<File, Integer> summary) throws IOException {
         String fileName = "batch_" + filePartNumber + ".csv";
-        File tmpFile = new File(getTmpDir(path), fileName);
+        File tmpFile = new File(getTmpDir(parentPath), fileName);
         try (CSVWriter csvWriter = new CSVWriter(new FileWriter(tmpFile, StandardCharsets.UTF_8))) {
             for (Row row : batch) {
                 // Writing data to CSV file
