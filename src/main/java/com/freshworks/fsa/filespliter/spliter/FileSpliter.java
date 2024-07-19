@@ -77,7 +77,7 @@ public class FileSpliter {
     }
 
     private static File getTmpDir(Path path) throws IOException {
-        File file = new File(String.valueOf(path.getParent()) + "/tmp");
+        File file = new File(path.getParent() + "/tmp");
         if (!file.exists()) {
             Files.createDirectories(Path.of(path.getParent() + "/tmp"));
         }
