@@ -7,7 +7,6 @@ import com.freshworks.fsa.filespliter.processor.DocumentProcessor;
 import com.freshworks.fsa.filespliter.processor.ExcelDocumentProcessor;
 import com.freshworks.fsa.filespliter.reader.DocumentReader;
 import com.opencsv.CSVWriter;
-import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -19,8 +18,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import static java.nio.file.Files.newInputStream;
@@ -35,8 +37,9 @@ public class FileSpliter {
         BatchedRecordReader reader;
         int filePartNumber = 1;
         Path path = Paths.get(filePath);
+        Map<File, Integer> summary = new LinkedHashMap<>();
         try (InputStream inputStream = newInputStream(path)) {
-            System.out.println("Original File :: " + getFileSize(filePath) + " MB");
+            summary.put(new File(filePath), 0);
             if (isCSV(filePath)) {
                 reader = new BatchedRecordReader(this.csvProcessor.getReader(inputStream));
             } else {
@@ -44,10 +47,10 @@ public class FileSpliter {
             }
             while (reader.hasMore()) {
                 List<Row> batch = reader.read();
-                write(batch, filePartNumber, path);
+                write(batch, filePartNumber, path, summary);
                 filePartNumber++;
-
             }
+            printSummary(summary, path);
         }
         return 0;
     }
@@ -62,7 +65,7 @@ public class FileSpliter {
         return Objects.equals(Files.probeContentType(filePath), "text/csv");
     }
 
-    private void write(List<Row> batch, int filePartNumber, Path path) throws IOException {
+    private void write(List<Row> batch, int filePartNumber, Path path, Map<File, Integer> summary) throws IOException {
         String fileName = "batch_" + filePartNumber + ".csv";
         File tmpFile = new File(getTmpDir(path), fileName);
         try (CSVWriter csvWriter = new CSVWriter(new FileWriter(tmpFile, StandardCharsets.UTF_8))) {
@@ -70,9 +73,22 @@ public class FileSpliter {
                 // Writing data to CSV file
                 csvWriter.writeNext(row.getValues().toArray(new String[]{}));
             }
-            System.out.println("Batch File :: " + fileName + " :: " + getFileSize(tmpFile.getAbsolutePath()) + " MB");
+            summary.put(tmpFile, batch.size());
         } catch (IOException exception) {
             exception.printStackTrace();
+        }
+    }
+
+    private void printSummary(Map<File, Integer> summary ,Path parentFile) throws IOException {
+        System.out.println("Original File :: File Size :: " + getFileSize(String.valueOf(parentFile.toAbsolutePath())) + " MB");
+        System.out.println("Original File :: Total Lines :: " + summary.values().stream().mapToInt(Integer::intValue).sum());
+        for (Map.Entry<File, Integer> entry : summary.entrySet()) {
+            if (!entry.getKey().getName().equals(parentFile.getFileName().toString())) {
+                File tmpFile = entry.getKey();
+                String fileName = tmpFile.getName();
+                System.out.println("Batch File :: " + fileName + " :: File Size :: " + getFileSize(tmpFile.getAbsolutePath()) + " MB");
+                System.out.println("Batch File :: " + fileName + " :: Total Lines :: " + entry.getValue());
+            }
         }
     }
 
